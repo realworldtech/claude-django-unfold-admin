@@ -1,0 +1,294 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+{# ==========================================================================
+   Dashboard Stats Cards
+   ========================================================================== #}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {# Total Users Card #}
+    <div class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-base-500 dark:text-base-400">
+                    {% trans "Total Users" %}
+                </p>
+                <p class="text-2xl font-bold text-base-900 dark:text-base-100 mt-1">
+                    {{ total_users|default:"0" }}
+                </p>
+            </div>
+            <div class="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-full">
+                <span class="material-symbols-outlined text-primary-600 dark:text-primary-400">
+                    person
+                </span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-600 dark:text-green-400 flex items-center">
+                <span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                12%
+            </span>
+            <span class="text-base-500 dark:text-base-400 ml-2">
+                {% trans "vs last month" %}
+            </span>
+        </div>
+    </div>
+
+    {# Total Orders Card #}
+    <div class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-base-500 dark:text-base-400">
+                    {% trans "Total Orders" %}
+                </p>
+                <p class="text-2xl font-bold text-base-900 dark:text-base-100 mt-1">
+                    {{ total_orders|default:"0" }}
+                </p>
+            </div>
+            <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
+                <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">
+                    shopping_cart
+                </span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-600 dark:text-green-400 flex items-center">
+                <span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                8%
+            </span>
+            <span class="text-base-500 dark:text-base-400 ml-2">
+                {% trans "vs last month" %}
+            </span>
+        </div>
+    </div>
+
+    {# Pending Orders Card #}
+    <div class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-base-500 dark:text-base-400">
+                    {% trans "Pending Orders" %}
+                </p>
+                <p class="text-2xl font-bold text-base-900 dark:text-base-100 mt-1">
+                    {{ pending_orders|default:"0" }}
+                </p>
+            </div>
+            <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
+                <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">
+                    pending
+                </span>
+            </div>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'admin:shop_order_changelist' %}?status=pending"
+               class="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center">
+                {% trans "View pending" %}
+                <span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+            </a>
+        </div>
+    </div>
+
+    {# Revenue Card #}
+    <div class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-base-500 dark:text-base-400">
+                    {% trans "Revenue" %}
+                </p>
+                <p class="text-2xl font-bold text-base-900 dark:text-base-100 mt-1">
+                    ${{ revenue|default:"0" }}
+                </p>
+            </div>
+            <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+                <span class="material-symbols-outlined text-green-600 dark:text-green-400">
+                    payments
+                </span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-600 dark:text-green-400 flex items-center">
+                <span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                23%
+            </span>
+            <span class="text-base-500 dark:text-base-400 ml-2">
+                {% trans "vs last month" %}
+            </span>
+        </div>
+    </div>
+</div>
+
+{# ==========================================================================
+   Recent Orders Table
+   ========================================================================== #}
+<div class="bg-white dark:bg-base-900 rounded-default shadow-sm mb-8">
+    <div class="px-5 py-4 border-b border-base-200 dark:border-base-700">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-base-900 dark:text-base-100">
+                {% trans "Recent Orders" %}
+            </h3>
+            <a href="{% url 'admin:shop_order_changelist' %}"
+               class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                {% trans "View all" %}
+            </a>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-base-100 dark:border-base-800">
+                    <th class="px-5 py-3 text-left text-xs font-semibold
+                               text-base-500 dark:text-base-400 uppercase tracking-wider">
+                        {% trans "Order" %}
+                    </th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold
+                               text-base-500 dark:text-base-400 uppercase tracking-wider">
+                        {% trans "Customer" %}
+                    </th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold
+                               text-base-500 dark:text-base-400 uppercase tracking-wider">
+                        {% trans "Status" %}
+                    </th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold
+                               text-base-500 dark:text-base-400 uppercase tracking-wider">
+                        {% trans "Total" %}
+                    </th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold
+                               text-base-500 dark:text-base-400 uppercase tracking-wider">
+                        {% trans "Date" %}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr class="border-b border-base-100 dark:border-base-800
+                           hover:bg-base-50 dark:hover:bg-base-800/50 transition-colors">
+                    <td class="px-5 py-4">
+                        <a href="{% url 'admin:shop_order_change' order.pk %}"
+                           class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
+                            #{{ order.pk|stringformat:"05d" }}
+                        </a>
+                    </td>
+                    <td class="px-5 py-4">
+                        <div class="text-sm text-base-900 dark:text-base-100">
+                            {{ order.customer.name }}
+                        </div>
+                        <div class="text-xs text-base-500 dark:text-base-400">
+                            {{ order.customer.email }}
+                        </div>
+                    </td>
+                    <td class="px-5 py-4">
+                        {% if order.status == 'pending' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            {% trans "Pending" %}
+                        </span>
+                        {% elif order.status == 'processing' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            {% trans "Processing" %}
+                        </span>
+                        {% elif order.status == 'shipped' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            {% trans "Shipped" %}
+                        </span>
+                        {% elif order.status == 'delivered' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            {% trans "Delivered" %}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     bg-base-100 text-base-800 dark:bg-base-800 dark:text-base-300">
+                            {{ order.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        <span class="text-sm font-medium text-base-900 dark:text-base-100">
+                            ${{ order.total }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        <span class="text-sm text-base-500 dark:text-base-400">
+                            {{ order.created_at|date:"M d, Y" }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-5 py-8 text-center text-base-500 dark:text-base-400">
+                        {% trans "No recent orders" %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ==========================================================================
+   Quick Actions
+   ========================================================================== #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <a href="{% url 'admin:shop_product_add' %}"
+       class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5
+              hover:shadow-md transition-shadow flex items-center group">
+        <div class="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-full mr-4
+                    group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition-colors">
+            <span class="material-symbols-outlined text-primary-600 dark:text-primary-400">
+                add_box
+            </span>
+        </div>
+        <div>
+            <p class="font-medium text-base-900 dark:text-base-100">
+                {% trans "Add Product" %}
+            </p>
+            <p class="text-sm text-base-500 dark:text-base-400">
+                {% trans "Create a new product listing" %}
+            </p>
+        </div>
+    </a>
+
+    <a href="{% url 'admin:blog_post_add' %}"
+       class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5
+              hover:shadow-md transition-shadow flex items-center group">
+        <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full mr-4
+                    group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+            <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">
+                edit_note
+            </span>
+        </div>
+        <div>
+            <p class="font-medium text-base-900 dark:text-base-100">
+                {% trans "Write Post" %}
+            </p>
+            <p class="text-sm text-base-500 dark:text-base-400">
+                {% trans "Create a new blog post" %}
+            </p>
+        </div>
+    </a>
+
+    <a href="{% url 'admin:auth_user_add' %}"
+       class="bg-white dark:bg-base-900 rounded-default shadow-sm p-5
+              hover:shadow-md transition-shadow flex items-center group">
+        <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-full mr-4
+                    group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+            <span class="material-symbols-outlined text-green-600 dark:text-green-400">
+                person_add
+            </span>
+        </div>
+        <div>
+            <p class="font-medium text-base-900 dark:text-base-100">
+                {% trans "Add User" %}
+            </p>
+            <p class="text-sm text-base-500 dark:text-base-400">
+                {% trans "Create a new user account" %}
+            </p>
+        </div>
+    </a>
+</div>
+
+{# Include the default admin content (app list) #}
+{{ block.super }}
+{% endblock %}
