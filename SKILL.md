@@ -43,6 +43,39 @@ INSTALLED_APPS = [
 ]
 ```
 
+### User & Group Admin (Always Do This)
+
+**Every Unfold project must re-register the User and Group admin.** Without this, the auth pages use Django's unstyled admin and look broken. Do this as part of initial setup, before writing any other ModelAdmin classes.
+
+In your main `admin.py` (or a dedicated `accounts/admin.py`):
+
+```python
+from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group, User
+
+from unfold.admin import ModelAdmin
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin, ModelAdmin):
+    form = UserChangeForm
+    add_form = UserCreationForm
+    change_password_form = AdminPasswordChangeForm
+
+
+@admin.register(Group)
+class GroupAdmin(BaseGroupAdmin, ModelAdmin):
+    pass
+```
+
+If the project uses a custom user model (`AUTH_USER_MODEL`), see `examples/user-admin.py` for `AbstractUser` and `AbstractBaseUser` patterns.
+
 ### Basic ModelAdmin
 
 Always inherit from `unfold.admin.ModelAdmin` instead of Django's default:
@@ -381,12 +414,54 @@ class OrderAdmin(ModelAdmin):
 
 **Principle**: Measure first, optimize second. Adding unnecessary `select_related` can actually hurt performance if selecting large related objects that aren't used.
 
+## User & Group Admin
+
+Django's built-in User and Group admin must be re-registered with Unfold to get proper styling. This is required in every Unfold project.
+
+### Minimum Setup (Default User)
+
+```python
+from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group, User
+
+from unfold.admin import ModelAdmin
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin, ModelAdmin):
+    form = UserChangeForm
+    add_form = UserCreationForm
+    change_password_form = AdminPasswordChangeForm
+
+
+@admin.register(Group)
+class GroupAdmin(BaseGroupAdmin, ModelAdmin):
+    pass
+```
+
+### Key Rules
+
+1. **Always inherit from both** the Django base admin class AND `unfold.admin.ModelAdmin` (order matters — Django base first)
+2. **Always set the three forms**: `form`, `add_form`, `change_password_form` from `unfold.forms`
+3. **Always unregister first** before re-registering
+4. **Custom User models** extending `AbstractUser`: keep `BaseUserAdmin` inheritance, add custom fields to `fieldsets` and `add_fieldsets`
+5. **Custom User models** extending `AbstractBaseUser`: keep `BaseUserAdmin` inheritance but fully define `fieldsets`, `add_fieldsets`, `list_display`, `search_fields`, and `ordering` since the defaults assume a `username` field
+
+See `examples/user-admin.py` for complete examples of all three scenarios (default User, AbstractUser, AbstractBaseUser).
+
 ## IMPORTANT: Which Reference to Use
 
 **You MUST read the appropriate reference file before writing code.** Match the task to the correct file:
 
 | Task | READ THIS FILE FIRST |
 |------|---------------------|
+| Setting up User/Group admin | **`examples/user-admin.py`** |
 | Writing HTML templates, styling buttons/cards/alerts, custom dashboard | **`references/templates-and-components.md`** |
 | Customizing form widgets, input styling, CSS classes | **`references/widgets-and-styling.md`** |
 | Adding @action or @display decorators to ModelAdmin | **`references/actions-and-decorators.md`** |
@@ -406,6 +481,7 @@ class OrderAdmin(ModelAdmin):
 
 | File | Use For |
 |------|---------|
+| `examples/user-admin.py` | **User & Group admin setup (default, AbstractUser, AbstractBaseUser)** |
 | `examples/basic-admin.py` | Simple ModelAdmin Python patterns |
 | `examples/advanced-admin.py` | Full-featured admin with actions, filters, inlines |
 | `examples/settings-example.py` | Complete UNFOLD settings configuration |

@@ -23,6 +23,7 @@ This skill is not affiliated with the django-unfold project. It is an independen
 ```
 SKILL.md                              # Main skill definition and quick-start guide
 examples/
+  user-admin.py                       # User & Group admin (default, AbstractUser, AbstractBaseUser)
   basic-admin.py                      # Simple ModelAdmin patterns
   advanced-admin.py                   # Full-featured admin with actions, filters, inlines
   settings-example.py                 # Complete UNFOLD settings configuration
