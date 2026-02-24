@@ -25,6 +25,7 @@ SKILL.md                              # Main skill definition and quick-start gu
 examples/
   user-admin.py                       # User & Group admin (default, AbstractUser, AbstractBaseUser)
   basic-admin.py                      # Simple ModelAdmin patterns
+  third-party-admin.py                # Fixing celery-beat, celery-results, and other third-party admin
   advanced-admin.py                   # Full-featured admin with actions, filters, inlines
   settings-example.py                 # Complete UNFOLD settings configuration
   custom-dashboard.html               # Dashboard template with Tailwind styling

@@ -37,7 +37,7 @@ Add `unfold` before `django.contrib.admin` in INSTALLED_APPS:
 INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.filters",  # Optional: advanced filters
-    "unfold.contrib.import_export",  # Optional: import/export support
+    "unfold.contrib.import_export",  # Optional: styled import/export forms
     "django.contrib.admin",
     # ... other apps
 ]
@@ -90,6 +90,163 @@ class MyModelAdmin(ModelAdmin):
     search_fields = ["name"]
 ```
 
+## Third-Party Admin Compatibility (Auto-Detect)
+
+**When bootstrapping Unfold or enabling it on an existing project, ALWAYS scan for third-party apps that register their own admin classes.** These will render with Django's unstyled admin and look broken alongside Unfold-styled pages.
+
+### Detection
+
+Check the project's `INSTALLED_APPS` for these packages and apply the correct fix:
+
+| Package | App in INSTALLED_APPS | Fix type |
+|---------|----------------------|----------|
+| django-celery-beat | `django_celery_beat` | Unregister & re-register 5 models + widget overrides |
+| django-celery-results | `django_celery_results` | Unregister & re-register 2 models |
+| django-simple-history | `simple_history` | Add `unfold.contrib.simple_history` to INSTALLED_APPS + multiple inheritance |
+| django-modeltranslation | `modeltranslation` | Multiple inheritance with `TabbedTranslationAdmin` |
+| django-import-export | `import_export` | Multiple inheritance + unfold form classes (see Section 9) |
+| django-guardian | `guardian` | Add `unfold.contrib.guardian` to INSTALLED_APPS |
+| django-constance | `constance` | Add `unfold.contrib.constance` before `constance` + use `UNFOLD_CONSTANCE_ADDITIONAL_FIELDS` |
+| django-location-field | `location_field` | Add `unfold.contrib.location_field` + use `UnfoldAdminLocationWidget` |
+| django-money | `djmoney` | **Automatic** — no changes needed |
+| djangoql | `djangoql` | **Automatic** — no changes needed |
+| django-json-widget | `django_json_widget` | **Automatic** — no changes needed |
+
+Also grep the project for any `admin.site.register()` calls or `@admin.register` decorators where the admin class inherits from `django.contrib.admin.ModelAdmin` instead of `unfold.admin.ModelAdmin`.
+
+### Fix Pattern
+
+The general fix for apps that register their own admin:
+
+1. **Unregister** the default admin class
+2. **Re-register** with a class that inherits from BOTH the original third-party admin AND `unfold.admin.ModelAdmin`
+3. **MRO order matters**: third-party base admin first, then `ModelAdmin`
+
+```python
+from django.contrib import admin
+from unfold.admin import ModelAdmin
+from some_package.admin import SomeModelAdmin as BaseSomeModelAdmin
+from some_package.models import SomeModel
+
+admin.site.unregister(SomeModel)
+
+@admin.register(SomeModel)
+class SomeModelAdmin(BaseSomeModelAdmin, ModelAdmin):
+    pass
+```
+
+### django-celery-beat + django-celery-results
+
+This is the most common case. See `examples/third-party-admin.py` for the complete solution.
+
+**Important**: The PeriodicTask admin needs custom widget and form overrides — without these, the task selector fields render unstyled. This follows the [official Unfold guide](https://unfoldadmin.com/docs/integrations/django-celery-beat/).
+
+```python
+# In your admin.py (or a dedicated celery_admin.py)
+from django.contrib import admin
+from unfold.admin import ModelAdmin
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextInputWidget
+
+# --- celery beat ---
+from django_celery_beat.admin import (
+    ClockedScheduleAdmin as BaseClockedScheduleAdmin,
+    CrontabScheduleAdmin as BaseCrontabScheduleAdmin,
+    PeriodicTaskAdmin as BasePeriodicTaskAdmin,
+    PeriodicTaskForm,
+    TaskSelectWidget,
+)
+from django_celery_beat.models import (
+    ClockedSchedule, CrontabSchedule, IntervalSchedule,
+    PeriodicTask, SolarSchedule,
+)
+
+admin.site.unregister(PeriodicTask)
+admin.site.unregister(IntervalSchedule)
+admin.site.unregister(CrontabSchedule)
+admin.site.unregister(SolarSchedule)
+admin.site.unregister(ClockedSchedule)
+
+
+class UnfoldTaskSelectWidget(UnfoldAdminSelectWidget, TaskSelectWidget):
+    pass
+
+
+class UnfoldPeriodicTaskForm(PeriodicTaskForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["task"].widget = UnfoldAdminTextInputWidget()
+        self.fields["regtask"].widget = UnfoldTaskSelectWidget()
+
+
+@admin.register(PeriodicTask)
+class PeriodicTaskAdmin(BasePeriodicTaskAdmin, ModelAdmin):
+    form = UnfoldPeriodicTaskForm
+
+@admin.register(IntervalSchedule)
+class IntervalScheduleAdmin(ModelAdmin):
+    pass
+
+@admin.register(CrontabSchedule)
+class CrontabScheduleAdmin(BaseCrontabScheduleAdmin, ModelAdmin):
+    pass
+
+@admin.register(SolarSchedule)
+class SolarScheduleAdmin(ModelAdmin):
+    pass
+
+@admin.register(ClockedSchedule)
+class ClockedScheduleAdmin(BaseClockedScheduleAdmin, ModelAdmin):
+    pass
+
+# --- celery results (same pattern, no widget overrides needed) ---
+from django_celery_results.admin import (
+    GroupResultAdmin as BaseGroupResultAdmin,
+    TaskResultAdmin as BaseTaskResultAdmin,
+)
+from django_celery_results.models import GroupResult, TaskResult
+
+admin.site.unregister(TaskResult)
+admin.site.unregister(GroupResult)
+
+@admin.register(TaskResult)
+class TaskResultAdmin(BaseTaskResultAdmin, ModelAdmin):
+    pass
+
+@admin.register(GroupResult)
+class GroupResultAdmin(BaseGroupResultAdmin, ModelAdmin):
+    pass
+```
+
+### django-simple-history
+
+Requires `unfold.contrib.simple_history` in INSTALLED_APPS (after `unfold`, before `simple_history`):
+
+```python
+from simple_history.admin import SimpleHistoryAdmin
+from unfold.admin import ModelAdmin
+
+@admin.register(MyModel)
+class MyModelAdmin(SimpleHistoryAdmin, ModelAdmin):
+    pass
+```
+
+### django-modeltranslation
+
+```python
+from modeltranslation.admin import TabbedTranslationAdmin
+from unfold.admin import ModelAdmin
+
+@admin.register(MyModel)
+class MyModelAdmin(ModelAdmin, TabbedTranslationAdmin):
+    pass
+```
+
+### When to Apply This
+
+- **During initial Unfold setup**: scan INSTALLED_APPS and fix all third-party admin classes before the user sees broken pages
+- **When adding a new third-party app**: check if it registers admin classes and apply the pattern
+- **When debugging "some admin pages look unstyled"**: this is almost always the cause
+
 ## Core Concepts
 
 ### 1. Class Inheritance
@@ -103,6 +260,8 @@ class MyModelAdmin(ModelAdmin):
 | `admin.StackedInline` | `unfold.admin.StackedInline` |
 
 For generic inlines, use `unfold.admin.GenericStackedInline` and `unfold.admin.GenericTabularInline`.
+
+**Note:** For import/export, there is no unfold replacement class. Use multiple inheritance: `class MyAdmin(ModelAdmin, ImportExportModelAdmin)` — see Section 9.
 
 ### 2. Actions System
 
@@ -296,6 +455,35 @@ class MyModelAdmin(ModelAdmin):
     change_form_datasets = [RelatedItemDataset]
 ```
 
+### 9. Import/Export Integration (django-import-export)
+
+Unfold does **not** provide its own `ImportExportModelAdmin`. Instead, use multiple inheritance with the standard `import_export.admin.ImportExportModelAdmin` and unfold's `ModelAdmin`. The `unfold.contrib.import_export` app provides template overrides and styled form classes — no custom admin class needed.
+
+**Setup:**
+
+1. Install: `pip install django-import-export`
+2. Add `"unfold.contrib.import_export"` to `INSTALLED_APPS` (before `django.contrib.admin`)
+3. Use multiple inheritance and set the form classes:
+
+```python
+from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from unfold.admin import ModelAdmin
+from unfold.contrib.import_export.forms import ExportForm, ImportForm
+
+@admin.register(MyModel)
+class MyModelAdmin(ModelAdmin, ImportExportModelAdmin):
+    import_form_class = ImportForm
+    export_form_class = ExportForm
+    # ... rest of your admin config
+```
+
+**Key points:**
+- Inherit `ModelAdmin` first, then `ImportExportModelAdmin` (MRO order matters)
+- `ImportForm` and `ExportForm` from `unfold.contrib.import_export.forms` style the import/export pages to match Unfold
+- For field-selectable exports, use `SelectableFieldsExportForm` instead of `ExportForm`
+- `ExportActionModelAdmin` was removed in django-import-export 4.x+ — use the default export action directly
+
 ## Styling Guidelines
 
 ### Icons
@@ -462,12 +650,14 @@ See `examples/user-admin.py` for complete examples of all three scenarios (defau
 | Task | READ THIS FILE FIRST |
 |------|---------------------|
 | Setting up User/Group admin | **`examples/user-admin.py`** |
+| Fixing unstyled third-party admin pages (celery, etc.) | **`examples/third-party-admin.py`** |
 | Writing HTML templates, styling buttons/cards/alerts, custom dashboard | **`references/templates-and-components.md`** |
 | Customizing form widgets, input styling, CSS classes | **`references/widgets-and-styling.md`** |
 | Adding @action or @display decorators to ModelAdmin | **`references/actions-and-decorators.md`** |
 | Adding list_filter, search, filter classes | **`references/filters-and-search.md`** |
 | Configuring UNFOLD settings dict, sidebar, colors | **`references/settings-configuration.md`** |
 | Inlines, TableSection, TemplateSection, BaseDataset | **`references/inlines-and-sections.md`** |
+| Import/export with django-import-export | **Section 9 above** (multiple inheritance + unfold form classes) |
 
 **For HTML/template work:** ALWAYS read `references/templates-and-components.md` first. It contains:
 - Tailwind CSS class patterns for Unfold
@@ -483,6 +673,7 @@ See `examples/user-admin.py` for complete examples of all three scenarios (defau
 |------|---------|
 | `examples/user-admin.py` | **User & Group admin setup (default, AbstractUser, AbstractBaseUser)** |
 | `examples/basic-admin.py` | Simple ModelAdmin Python patterns |
+| `examples/third-party-admin.py` | **Fixing django-celery-beat, django-celery-results, and other third-party admin classes** |
 | `examples/advanced-admin.py` | Full-featured admin with actions, filters, inlines |
 | `examples/settings-example.py` | Complete UNFOLD settings configuration |
 | `examples/custom-dashboard.html` | **HTML template patterns and Tailwind styling** |
