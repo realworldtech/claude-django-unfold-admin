@@ -54,6 +54,8 @@ from unfold.contrib.filters.admin import (
 )
 ```
 
+> Import these classes **by name**, as shown. Do not use `from unfold.contrib.filters.admin import *` — the package's `__all__` has a known upstream bug (it lists a non-existent name and omits a real one), so a wildcard import can raise. All 23 classes above are importable directly.
+
 ## Filter Types
 
 ### Dropdown Filters
@@ -283,22 +285,57 @@ class ProductAdmin(ModelAdmin):
 class MyModelAdmin(ModelAdmin):
     list_filter = [...]
 
-    # Submit button for filters (good for many filters)
+    # Submit button for filters (good for many filters): apply on submit, not instantly
     list_filter_submit = True
 
-    # Show filters in side sheet (default) vs inline
-    list_filter_sheet = True  # True = sheet, False = inline
+    # Show filters in side sheet (default) vs inline in the changelist sidebar
+    list_filter_sheet = True  # True = sheet (default), False = inline
 ```
 
-## Facet Counts
+### Horizontal Filters
 
-Django 5.0+ supports facet counts (showing count per filter option):
+Filter options can be laid out horizontally instead of stacked. There is **no** `list_filter_horizontal` attribute — use one of two mechanisms:
+
+**1. On the filter class** — set `horizontal = True`:
+
+```python
+from django.contrib.admin import ChoicesFieldListFilter
+
+class HorizontalChoicesFilter(ChoicesFieldListFilter):
+    horizontal = True
+
+list_filter = [("category", HorizontalChoicesFilter)]
+```
+
+**2. Via `list_filter_options`** — per field, no subclassing:
 
 ```python
 class MyModelAdmin(ModelAdmin):
-    list_filter = [("status", ChoicesDropdownFilter)]
-    show_facets = admin.ShowFacets.ALWAYS  # or ALLOW, NEVER
+    list_filter = ["category"]
+    list_filter_options = {
+        "category": {"label": "Category", "horizontal": True},
+    }
 ```
+
+`list_filter_options` is a dict keyed by field name; each value supports `label` and `horizontal`.
+
+## Facet Counts
+
+Facet counts (the number of matching rows per filter option) come from **Django's native facets** (Django 5.0+), not from an Unfold attribute. Unfold renders the ` (count)` suffix when facets are active. Control it with Django's `show_facets`:
+
+```python
+from django.contrib.admin import ShowFacets
+
+class MyModelAdmin(ModelAdmin):
+    list_filter = [("status", ChoicesDropdownFilter)]
+    show_facets = ShowFacets.ALWAYS  # or ALLOW_AFTER_FILTERS (default), NEVER
+```
+
+Choice dropdowns also support searching within facet options. Facets require Django ≥ 5.0.
+
+## DjangoQL Search
+
+If the project uses `djangoql`, Unfold styles its advanced-search input automatically — but you still set djangoql up yourself (add `"djangoql"` to `INSTALLED_APPS` and inherit `djangoql.admin.DjangoQLSearchMixin` before `ModelAdmin`). See `references/integrations.md`.
 
 ## Complete Example
 

@@ -25,18 +25,10 @@ UNFOLD = {
     # Option 2: Material Symbol name
     "SITE_SYMBOL": "dashboard",
 
-    # Option 3: Logo with light/dark variants
+    # Option 3: Logo with light/dark variants (each is a callable returning a static URL)
     # "SITE_LOGO": {
-    #     "light": {
-    #         "url": lambda request: static("images/logo-light.svg"),
-    #         "alt": "My Company",
-    #         "height": 32,
-    #     },
-    #     "dark": {
-    #         "url": lambda request: static("images/logo-dark.svg"),
-    #         "alt": "My Company",
-    #         "height": 32,
-    #     },
+    #     "light": lambda request: static("images/logo-light.svg"),
+    #     "dark": lambda request: static("images/logo-dark.svg"),
     # },
 
     # Favicons
@@ -66,6 +58,9 @@ UNFOLD = {
     "SHOW_HISTORY": True,         # Show history link in change forms
     "SHOW_VIEW_ON_SITE": True,    # Show "View on site" link
     "SHOW_BACK_BUTTON": False,    # Show back button in header
+    "SHOW_UI_WARNINGS": False,    # Show/hide Unfold's UI warnings
+    # "THEME": "dark",            # Force a theme AND hide the switcher ("dark" or "light")
+    "BORDER_RADIUS": "6px",
 
     # =========================================================================
     # Language Settings
@@ -126,6 +121,9 @@ UNFOLD = {
     # =========================================================================
     "DASHBOARD_CALLBACK": "myapp.admin.dashboard_callback",
 
+    # Context merged into EVERY admin page (not just the dashboard)
+    # "GLOBAL_CALLBACK": "myapp.admin.global_callback",
+
     # =========================================================================
     # Environment Badge
     # =========================================================================
@@ -146,9 +144,8 @@ UNFOLD = {
     # Sidebar Configuration
     # =========================================================================
     "SIDEBAR": {
-        "show_search": True,           # Search bar in sidebar
-        "command_search": False,       # Use command palette for search
-        "show_all_applications": False, # Show all registered apps
+        "show_search": True,            # Search box over application/model names
+        "show_all_applications": False, # "All applications" dropdown
 
         # IMPORTANT: Each entry in navigation must have an "items" list
         "navigation": [
@@ -208,6 +205,8 @@ UNFOLD = {
                         "icon": "receipt_long",
                         "link": reverse_lazy("admin:shop_order_changelist"),
                         "badge": "myapp.admin.orders_badge",
+                        "badge_variant": "danger",  # info / success / warning / primary / danger
+                        "badge_style": "solid",
                     },
                     {
                         "title": _("Customers"),
@@ -293,8 +292,8 @@ UNFOLD = {
     # =========================================================================
     "LOGIN": {
         "image": lambda request: static("images/login-bg.jpg"),
-        "redirect_after": reverse_lazy("admin:index"),
-        # "form": "myapp.forms.CustomLoginForm",  # Custom login form
+        "redirect_after": lambda request: reverse_lazy("admin:index"),
+        # "form": "myapp.forms.CustomLoginForm",  # must subclass unfold.forms.AuthenticationForm
     },
 
     # =========================================================================
@@ -340,8 +339,10 @@ UNFOLD = {
     # Command Palette
     # =========================================================================
     "COMMAND": {
-        "search_models": True,    # Enable model search
-        "show_history": True,     # Show recent history
+        # search_models: True (all models with search_fields), a list of
+        # "app.model" strings, or an import-string callback returning that list.
+        "search_models": True,
+        "show_history": True,     # remember recent queries (client-side localStorage)
         # "search_callback": "myapp.admin.command_search_callback",
     },
 
@@ -351,8 +352,8 @@ UNFOLD = {
     "EXTENSIONS": {
         "modeltranslation": {
             "flags": {
-                "en": "us",
-                "es": "es",
+                "en": "🇬🇧",
+                "es": "🇪🇸",
             },
         },
     },
@@ -408,3 +409,30 @@ def orders_badge(request):
     from shop.models import Order
     count = Order.objects.filter(status="pending").count()
     return count if count > 0 else None
+
+
+# Global callback — context merged into EVERY admin page
+def global_callback(request):
+    """Return context available on all admin pages."""
+    return {"support_url": "https://support.example.com"}
+
+
+# Command palette custom results — return a list of unfold SearchResult objects
+def command_search_callback(request, search_term):
+    """Inject custom results into the command palette (handle permissions yourself)."""
+    from django.urls import reverse
+
+    from unfold.dataclasses import SearchResult
+    from shop.models import Order
+
+    results = []
+    for order in Order.objects.filter(reference__icontains=search_term)[:20]:
+        results.append(
+            SearchResult(
+                title=order.reference,
+                description=f"Order for {order.customer}",
+                link=reverse("admin:shop_order_change", args=[order.pk]),
+                icon="receipt_long",
+            )
+        )
+    return results

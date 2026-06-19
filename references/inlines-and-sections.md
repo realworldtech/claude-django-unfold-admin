@@ -31,15 +31,21 @@ from unfold.admin import (
 
 ### Inline Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `extra` | int | Number of empty forms |
-| `per_page` | int | Pagination (items per page) |
-| `collapsible` | bool | Can collapse inline section |
-| `tab` | bool | Show as tab |
-| `ordering_field` | str | Field for drag-drop ordering |
-| `hide_ordering_field` | bool | Hide ordering column |
-| `readonly_preprocess_fields` | dict | Preprocess readonly fields |
+These are the Unfold-specific attributes (all live on `BaseInlineMixin`), in addition to the standard Django inline options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `extra` | int | (Django) | Number of empty forms |
+| `per_page` | int | `None` | Enable pagination (items per page) |
+| `collapsible` | bool | `False` | Can collapse the inline section |
+| `tab` | bool | `False` | Render the inline inside a tab |
+| `show_count` | bool | `False` | Show an object-count badge on the inline header |
+| `hide_title` | bool | `False` | Hide the inline title row |
+| `ordering_field` | str | `None` | Field for drag-drop ordering (saved records only) |
+| `hide_ordering_field` | bool | `False` | Hide the ordering column |
+| `readonly_preprocess_fields` | dict | `{}` | Preprocess readonly field values |
+
+Customise the count badge with `get_count(request, obj)` and `get_count_variant(request, obj)` (returning `"primary"`/`"danger"`/`"success"`/`"info"`/`"warning"`); set a custom inline title with `get_inline_title()` on the **model**.
 
 ### Pagination
 
@@ -77,14 +83,34 @@ class ItemInline(TabularInline):
         return super().get_queryset(request).order_by("position")
 ```
 
+### Nested Inlines
+
+Declare an `inlines` attribute on an inline class to nest one inline inside another. **One level of nesting only** (parent → child); deeper nesting and nesting through M2M are not supported.
+
+```python
+from unfold.admin import ModelAdmin, TabularInline
+
+class SubTaskInline(TabularInline):
+    model = SubTask
+
+class TaskInline(TabularInline):
+    model = Task
+    inlines = [SubTaskInline]   # nested one level
+
+@admin.register(Project)
+class ProjectAdmin(ModelAdmin):
+    inlines = [TaskInline]
+```
+
 ### Complete Inline Example
 
 ```python
 class OrderItemInline(TabularInline):
     model = OrderItem
     extra = 0
-    per_page = 5
+    per_page = 5          # paginate the inline (PaginationInlineFormSet under the hood)
     collapsible = True
+    show_count = True
     ordering_field = "position"
     hide_ordering_field = True
 
@@ -98,9 +124,58 @@ class OrderItemInline(TabularInline):
 
 ---
 
-## Sections
+## Paginator: InfinitePaginator
 
-Sections add extra content to change list pages (below the list).
+For very large tables, `InfinitePaginator` avoids the expensive `COUNT(*)` that Django runs to compute total pages — it renders only Previous/Next.
+
+```python
+from unfold.admin import ModelAdmin
+from unfold.paginator import InfinitePaginator
+
+@admin.register(Event)
+class EventAdmin(ModelAdmin):
+    paginator = InfinitePaginator       # standard Django `paginator` attribute
+    show_full_result_count = False      # skip the total-count query
+```
+
+---
+
+## Sortable Changelist
+
+Drag-drop row ordering on the changelist (not just inlines). Set `ordering_field` to a `PositiveIntegerField` on the model.
+
+```python
+@admin.register(Page)
+class PageAdmin(ModelAdmin):
+    ordering_field = "weight"       # model needs PositiveIntegerField(..., db_index=True)
+    hide_ordering_field = True      # hide the weight column
+    list_display = ["title", "weight"]
+```
+
+---
+
+## Conditional Fields
+
+Show or hide form fields live (no reload) based on the value of another field. `conditional_fields` maps a field name to an Alpine.js boolean expression referencing other fields in the form.
+
+```python
+@admin.register(Profile)
+class ProfileAdmin(ModelAdmin):
+    fields = ["different_address", "country", "city", "address"]
+    conditional_fields = {
+        "country": "different_address == true",
+        "city": "different_address == true",
+        "address": "different_address == true",
+    }
+```
+
+For multi-widget fields (e.g. a `SplitDateTimeField` named `date_start`), reference the sub-widgets by suffix: `date_start_0`, `date_start_1`.
+
+---
+
+## Sections (Expandable Changelist Rows)
+
+`list_sections` adds **expandable rows to the changelist** — each record gets a toggle that reveals the section content for that row. This is *not* change-form content; to embed a related changelist inside a change form, use **Datasets** (below).
 
 ### Import
 
@@ -108,16 +183,18 @@ Sections add extra content to change list pages (below the list).
 from unfold.sections import TableSection, TemplateSection
 ```
 
+Each section is constructed with `(request, instance)`, where `instance` is the row's model object.
+
 ### TableSection
 
-Display related data as a table:
+Display related data as a table. `related_name` is **required** (the related manager on the row's model); `height` is an optional int (pixels).
 
 ```python
 class RelatedOrdersSection(TableSection):
     verbose_name = "Recent Orders"
-    related_name = "orders"  # Related manager name on model
+    related_name = "orders"  # related manager name on the model (required)
     fields = ["id", "total", "created_at"]
-    height = "300px"  # Optional fixed height
+    height = 300             # optional fixed height (int, pixels)
 
 @admin.register(Customer)
 class CustomerAdmin(ModelAdmin):
@@ -225,8 +302,11 @@ class OrderAdmin(ModelAdmin):
 | Property | Type | Description |
 |----------|------|-------------|
 | `model` | Model class | The model to display |
-| `model_admin` | ModelAdmin class | Admin class for display config |
-| `tab` | bool | Show as tab (default: False) |
+| `model_admin` | ModelAdmin class | Admin class for display config (must be an Unfold `ModelAdmin`) |
+| `tab` | bool | Show as tab (default: `False`) |
+| `title` | str | Custom title for the dataset |
+
+> **Datasets disable list filters and column sorting.** The embedded changelist is built with `list_filter=[]` and `sortable_by=[]`. Don't rely on filtering/sorting inside a dataset; scope the rows via `get_queryset()` on the dataset's `model_admin` instead.
 
 ### Dataset with Actions
 
@@ -309,7 +389,7 @@ class RecentOrdersSection(TableSection):
     verbose_name = "Recent Orders"
     related_name = "orders"
     fields = ["id", "total", "status", "created_at"]
-    height = "200px"
+    height = 200
 
 # Dataset ModelAdmin
 class PaymentDatasetAdmin(ModelAdmin):

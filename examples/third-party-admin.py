@@ -16,17 +16,25 @@ This file covers the most common offenders:
 - django-celery-results (task result storage)
 - django-simple-history (model history tracking)
 - django-modeltranslation (model field translations)
+- django-hijack (user impersonation)
+- djangoql (advanced search)
 
-For integrations that work automatically (no admin changes needed):
+For integrations that work fully automatically (no admin changes needed):
 - django-money: Unfold auto-detects MoneyField and applies UnfoldAdminMoneyWidget
-- djangoql: Unfold auto-styles the search input, toggle, and dropdown
 - django-json-widget: Unfold auto-styles the widget with dark mode support
 
 For integrations that need INSTALLED_APPS ordering only:
-- django-guardian: Add "unfold.contrib.guardian" to INSTALLED_APPS
+- django-guardian: Add "unfold.contrib.guardian" near the top of INSTALLED_APPS
+- django-hijack: Add "unfold.contrib.hijack" (after unfold, before hijack)
 - django-constance: Add "unfold.contrib.constance" before "constance"
 - django-location-field: Add "unfold.contrib.location_field" before "location_field"
 
+NOTE on djangoql: Unfold *styles* it automatically, but the search feature is
+djangoql's own — you still add "djangoql" to INSTALLED_APPS and inherit
+DjangoQLSearchMixin on your admin (see bottom of this file). There is no
+unfold.contrib.djangoql app.
+
+Full per-package reference: references/integrations.md
 Source: https://unfoldadmin.com/docs/integrations/
 """
 
@@ -219,3 +227,37 @@ class GroupResultAdmin(BaseGroupResultAdmin, ModelAdmin):
 #         },
 #     },
 # }
+
+
+# =============================================================================
+# django-hijack
+# =============================================================================
+# Source: https://unfoldadmin.com/docs/integrations/django-hijack/
+#
+# Styling only — no admin mixin or settings required. Just add the contrib app:
+#   INSTALLED_APPS = [
+#       "unfold",
+#       "unfold.contrib.hijack",   # <-- after unfold, before hijack
+#       "hijack",
+#       "hijack.contrib.admin",
+#   ]
+#
+# Unfold then styles the impersonation banner and the hijack buttons on the
+# user changelist. (The banner may render unstyled once you leave the admin.)
+
+
+# =============================================================================
+# djangoql
+# =============================================================================
+# Source: https://unfoldadmin.com/docs/integrations/djangoql/
+#
+# Unfold styles djangoql automatically, but you still wire up djangoql itself:
+#   INSTALLED_APPS = ["unfold", "djangoql", ...]
+#
+# Then inherit djangoql's mixin BEFORE Unfold's ModelAdmin:
+
+# from djangoql.admin import DjangoQLSearchMixin
+#
+# @admin.register(MyModel)
+# class MyModelAdmin(DjangoQLSearchMixin, ModelAdmin):
+#     search_fields = ["name"]

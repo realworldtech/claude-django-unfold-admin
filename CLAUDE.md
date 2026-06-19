@@ -25,19 +25,23 @@ SKILL.md                              # Main skill definition and quick-start gu
 examples/
   user-admin.py                       # User & Group admin (default, AbstractUser, AbstractBaseUser)
   basic-admin.py                      # Simple ModelAdmin patterns
-  third-party-admin.py                # Fixing celery-beat, celery-results, and other third-party admin
-  advanced-admin.py                   # Full-featured admin with actions, filters, inlines
+  third-party-admin.py                # Fixing celery-beat, celery-results, hijack, djangoql, etc.
+  advanced-admin.py                   # Full-featured admin (actions incl. dialogs, filters, inlines, conditional fields)
   settings-example.py                 # Complete UNFOLD settings configuration
-  custom-dashboard.html               # Dashboard template with Tailwind styling
+  custom-dashboard.html               # Dashboard using the {% component %} library + Tailwind
 references/
-  actions-and-decorators.md           # @action and @display decorator reference
-  filters-and-search.md              # Filter types and search configuration
-  inlines-and-sections.md            # Inlines, TableSection, TemplateSection, BaseDataset
-  settings-configuration.md          # UNFOLD settings dictionary reference
-  templates-and-components.md        # HTML templates, Tailwind classes, Material Symbols
+  actions-and-decorators.md           # @action (incl. dialogs) and @display decorator reference
+  filters-and-search.md              # Filter types, facet/horizontal filters, search
+  inlines-and-sections.md            # Inlines (nested/paginated), sections, datasets, conditional fields, sortable
+  settings-configuration.md          # UNFOLD settings dict, sidebar, command palette, dashboard
+  templates-and-components.md        # HTML templates, Tailwind 4, Material Symbols, dark mode
+  components.md                      # Unfold's {% component %} library (cards, charts, tables, buttons, etc.)
   widgets-and-styling.md             # Widget reference and CSS class constants
+  integrations.md                    # Third-party packages (celery, hijack, djangoql, import-export, etc.)
 ```
+
+Targets **django-unfold 0.97.x** (Django ≥ 5.2, Python ≥ 3.12).
 
 ## Updating
 
-When django-unfold releases new features or changes APIs, update the corresponding reference file and examples. The SKILL.md quick-start section should stay in sync with the current API surface.
+When django-unfold releases new features or changes APIs, update the corresponding reference file and examples. The SKILL.md quick-start section should stay in sync with the current API surface. Ground new content in the upstream docs ([unfoldadmin.com/docs](https://unfoldadmin.com/docs/)) and source ([github.com/unfoldadmin/django-unfold](https://github.com/unfoldadmin/django-unfold)) rather than memory — Unfold's API moves quickly. Bump the "Version & Compatibility" block in SKILL.md when the supported Django/Python range changes.

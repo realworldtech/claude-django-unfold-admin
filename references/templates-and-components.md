@@ -1,5 +1,17 @@
 # Templates and Components Reference
 
+> **Prefer Unfold's built-in components.** Before hand-writing the Tailwind markup in this file, check `references/components.md` — Unfold ships `{% component %}` templates for cards, buttons, progress bars, trackers, tables, charts, and links that already match the theme and dark mode. Hand-roll Tailwind only when no component fits.
+
+## Tailwind 4 (Important for Custom Templates)
+
+Unfold builds its CSS with **Tailwind CSS v4**. This changes how you author custom styling:
+
+- **No `tailwind.config.js`.** Tailwind 4 is CSS-first; Unfold's config lives in `styles.css` via `@theme`, `@custom-variant`, `@source`, etc. You cannot extend Unfold's Tailwind config with a JS file.
+- **Colours are CSS custom properties.** `bg-primary-600`, `text-base-900`, etc. resolve to `var(--color-…)` values that Unfold injects from `UNFOLD["COLORS"]`, so they are theme- and dark-mode-aware automatically.
+- **Dark mode is class-based**, via a custom variant keyed on the `.dark` class on `<html>` (not `prefers-color-scheme`). Always pair light/dark utilities: `bg-white dark:bg-base-900`.
+- **Arbitrary utility classes you reference dynamically may not be generated.** Tailwind only emits classes it sees at build time. Unfold safelists its own dynamic classes via `@source inline(...)`, but you cannot edit that list. If your custom template/Python uses Tailwind classes Unfold hasn't compiled, ship them through your own stylesheet referenced via `UNFOLD["STYLES"]` (or precompile your own Tailwind). `STYLES`/`SCRIPTS` are the supported extension points for custom assets.
+- `rounded-default` is driven by `UNFOLD["BORDER_RADIUS"]`.
+
 ## CRITICAL: Color System
 
 Unfold uses TWO types of colors:
@@ -59,6 +71,19 @@ Unfold provides customizable template blocks:
     </style>
 {% endblock %}
 ```
+
+### Key Template Blocks
+
+Useful override blocks Unfold exposes (verified against 0.97.x templates):
+
+| Template | Blocks for inserting content |
+|----------|------------------------------|
+| `admin/index.html` (dashboard) | `content` |
+| `admin/change_list.html` | `object-tools-items`, `content`, `result_list`, `filters`, `search`, `pagination` |
+| `admin/change_form.html` | `form_before`, `form_top`, `after_field_sets`, `after_related_objects`, `form_after`, `object-tools-items`, `submit_buttons_bottom` |
+| `unfold/layouts/skeleton.html` | `extrahead`, `extrastyle`, `branding`, `content_title` |
+
+For global CSS/JS, prefer `UNFOLD["STYLES"]` / `UNFOLD["SCRIPTS"]` over per-template `extrahead` blocks.
 
 ### Dashboard Template
 
