@@ -9,17 +9,33 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 
 This skill helps you build modern, beautifully styled Django admin interfaces using django-unfold. Unfold provides a complete redesign of Django's admin with Tailwind CSS styling, Material Symbols icons, and enhanced functionality.
 
+## Version & Compatibility
+
+This skill targets **django-unfold 0.97.x** (the current series as of June 2026). Unfold ships frequent releases; the APIs documented here are stable across the 0.9x series, but check the [CHANGELOG](https://github.com/unfoldadmin/django-unfold/blob/main/CHANGELOG.md) for anything newer.
+
+Recent Unfold versions dropped support for older runtimes. As of 0.97.x:
+
+| Requirement | Supported |
+|-------------|-----------|
+| Django | **5.2 and 6.0** (4.2 / 5.0 / 5.1 support has been removed) |
+| Python | **3.12, 3.13, 3.14** (3.10 / 3.11 support has been removed) |
+
+If a project is on Django < 5.2 or Python < 3.12, either upgrade the runtime or pin an older Unfold release — do not assume the latest Unfold will install.
+
 ## CRITICAL: Before Writing Any Code
 
 **STOP and read the correct reference file FIRST:**
 
 - **Writing/fixing HTML templates?** → Read `references/templates-and-components.md`
+- **Using Unfold's built-in UI components (cards, charts, tables, buttons)?** → Read `references/components.md`
 - **Styling forms or widgets?** → Read `references/widgets-and-styling.md`
-- **Adding admin actions?** → Read `references/actions-and-decorators.md`
-- **Adding filters?** → Read `references/filters-and-search.md`
-- **Configuring settings?** → Read `references/settings-configuration.md`
+- **Adding admin actions (incl. dialogs/confirmations)?** → Read `references/actions-and-decorators.md`
+- **Adding filters (incl. facet/horizontal)?** → Read `references/filters-and-search.md`
+- **Inlines, sections, datasets, conditional fields, sortable changelist?** → Read `references/inlines-and-sections.md`
+- **Configuring settings, sidebar, command palette, dashboard?** → Read `references/settings-configuration.md`
+- **Integrating a third-party package (celery, hijack, djangoql, constance, import-export…)?** → Read `references/integrations.md`
 
-**DO NOT guess at Tailwind classes or HTML patterns.** The reference files contain the exact classes and patterns that match Unfold's styling. Using Bootstrap or generic Tailwind will look wrong.
+**DO NOT guess at Tailwind classes or HTML patterns.** The reference files contain the exact classes and patterns that match Unfold's styling. Using Bootstrap or generic Tailwind will look wrong. Prefer Unfold's built-in `{% component %}` library (see `references/components.md`) over hand-writing Tailwind where a component exists.
 
 ## Quick Start
 
@@ -31,17 +47,27 @@ pip install django-unfold
 
 ### Settings Configuration
 
-Add `unfold` before `django.contrib.admin` in INSTALLED_APPS:
+Add `unfold` (and any optional `unfold.contrib.*` apps you use) **before** `django.contrib.admin` in INSTALLED_APPS:
 
 ```python
 INSTALLED_APPS = [
-    "unfold",
-    "unfold.contrib.filters",  # Optional: advanced filters
-    "unfold.contrib.import_export",  # Optional: styled import/export forms
+    "unfold",                          # main app — must be before django.contrib.admin
+    "unfold.contrib.filters",          # optional: advanced list filters
+    "unfold.contrib.forms",            # optional: ArrayWidget / WysiwygWidget form widgets
+    "unfold.contrib.inlines",          # optional: non-related & enhanced inlines
+    "unfold.contrib.import_export",    # optional: styled import/export forms
+    "unfold.contrib.guardian",         # optional: django-guardian object permissions
+    "unfold.contrib.simple_history",   # optional: django-simple-history
     "django.contrib.admin",
     # ... other apps
 ]
 ```
+
+Only add the `unfold.contrib.*` apps you actually use. Ordering rules that matter:
+- Every `unfold.contrib.*` app must come **after** `unfold` and **before** `django.contrib.admin`.
+- A contrib app that overrides another package's templates (e.g. `unfold.contrib.constance`, `unfold.contrib.location_field`) must come **before** that package in the list.
+
+See `references/integrations.md` for the per-package setup details.
 
 ### User & Group Admin (Always Do This)
 
@@ -102,17 +128,22 @@ Check the project's `INSTALLED_APPS` for these packages and apply the correct fi
 |---------|----------------------|----------|
 | django-celery-beat | `django_celery_beat` | Unregister & re-register 5 models + widget overrides |
 | django-celery-results | `django_celery_results` | Unregister & re-register 2 models |
-| django-simple-history | `simple_history` | Add `unfold.contrib.simple_history` to INSTALLED_APPS + multiple inheritance |
+| django-simple-history | `simple_history` | Add `unfold.contrib.simple_history` (after `unfold`, before `simple_history`) + multiple inheritance |
 | django-modeltranslation | `modeltranslation` | Multiple inheritance with `TabbedTranslationAdmin` |
-| django-import-export | `import_export` | Multiple inheritance + unfold form classes (see Section 9) |
-| django-guardian | `guardian` | Add `unfold.contrib.guardian` to INSTALLED_APPS |
+| django-import-export | `import_export` | Add `unfold.contrib.import_export` + multiple inheritance + unfold form classes (see Section 9) |
+| django-guardian | `guardian` | Add `unfold.contrib.guardian` (near top, before `guardian`) |
+| django-hijack | `hijack` | Add `unfold.contrib.hijack` (after `unfold`, before `hijack`) — styling only |
 | django-constance | `constance` | Add `unfold.contrib.constance` before `constance` + use `UNFOLD_CONSTANCE_ADDITIONAL_FIELDS` |
-| django-location-field | `location_field` | Add `unfold.contrib.location_field` + use `UnfoldAdminLocationWidget` |
+| django-location-field | `location_field` | Add `unfold.contrib.location_field` before `location_field` + use `UnfoldAdminLocationWidget` |
+| djangoql | `djangoql` | Styling is **automatic**, but djangoql itself still needs its own `DjangoQLSearchMixin` on the admin (see below) |
 | django-money | `djmoney` | **Automatic** — no changes needed |
-| djangoql | `djangoql` | **Automatic** — no changes needed |
 | django-json-widget | `django_json_widget` | **Automatic** — no changes needed |
 
+> **Correction vs. older guidance:** djangoql is *not* zero-effort. Unfold automatically **styles** djangoql's search box, toggle, and dropdown with no Unfold-specific config — but the search feature itself comes from djangoql, so you still add `"djangoql"` to `INSTALLED_APPS` and inherit `djangoql.admin.DjangoQLSearchMixin` (before `ModelAdmin`) on each admin. By contrast, **django-money** and **django-json-widget** genuinely need nothing. There is no `unfold.contrib.djangoql` app.
+
 Also grep the project for any `admin.site.register()` calls or `@admin.register` decorators where the admin class inherits from `django.contrib.admin.ModelAdmin` instead of `unfold.admin.ModelAdmin`.
+
+Full per-package setup (imports, MRO order, settings) lives in `references/integrations.md`.
 
 ### Fix Pattern
 
@@ -285,14 +316,32 @@ from unfold.enums import ActionVariant
     permissions=["export"],
     url_path="export",
     icon="download",
-    variant=ActionVariant.PRIMARY  # DEFAULT, PRIMARY, SUCCESS, INFO, WARNING, DANGER
+    variant=ActionVariant.PRIMARY,  # DEFAULT, PRIMARY, SUCCESS, INFO, WARNING, DANGER
+    attrs={"target": "_blank"},     # optional extra HTML attributes
 )
 def export_action(self, request, object_id):
     # Implementation
     return redirect(...)
 ```
 
-**Dropdown Actions** - Group related actions:
+**Confirmation / form dialogs** — pass `dialog=` to require confirmation (or collect input via a form) before the action runs. The handler then receives the validated `form` as an extra argument, inserted right after `request`. See `references/actions-and-decorators.md`.
+
+```python
+from unfold.forms import BaseDialogForm
+
+class MyModelAdmin(ModelAdmin):
+    actions_detail = ["archive"]
+
+    @action(description="Archive", dialog={
+        "title": "Archive this record?",
+        "description": "This cannot be undone.",
+        "form_submit_text": "Archive",   # NOTE: key is form_submit_text (the docs mislabel it submit_text)
+    })
+    def archive(self, request, form, object_id):  # detail/row: (self, request, form, object_id)
+        ...                                        # list:        (self, request, form)
+```
+
+**Dropdown Actions** - Group related actions (supported for `actions_list` and `actions_detail`):
 
 ```python
 actions_detail = [
@@ -419,21 +468,21 @@ class ItemInline(TabularInline):
     tab = True  # Show as tab
 ```
 
-### 7. Sections (Change Form)
+### 7. Sections (Expandable Changelist Rows)
 
-Add extra content sections to change forms:
+`list_sections` adds **expandable rows to the changelist** — each record gets a toggle that reveals the section content. (This is *not* change-form content; for embedding related changelists inside a change form, use Datasets — Section 8.)
 
 ```python
 from unfold.sections import TableSection, TemplateSection
 
 class RelatedItemsSection(TableSection):
     verbose_name = "Related Items"
-    related_name = "items"  # Related manager name
+    related_name = "items"   # related manager name on the row's model (required)
     fields = ["name", "price"]
-    height = "300px"
+    height = 300             # optional fixed height (int, pixels)
 
 class CustomSection(TemplateSection):
-    template_name = "admin/custom_section.html"
+    template_name = "admin/custom_section.html"  # required
 
 class MyModelAdmin(ModelAdmin):
     list_sections = [RelatedItemsSection, CustomSection]
@@ -484,6 +533,30 @@ class MyModelAdmin(ModelAdmin, ImportExportModelAdmin):
 - For field-selectable exports, use `SelectableFieldsExportForm` instead of `ExportForm`
 - `ExportActionModelAdmin` was removed in django-import-export 4.x+ — use the default export action directly
 
+## Newer Features (0.6x–0.9x) — What Exists and Where to Look
+
+Unfold has grown a lot. Before hand-building something, check whether Unfold already provides it:
+
+| Capability | How | Reference |
+|------------|-----|-----------|
+| **Command palette** (⌘K / Ctrl-K search) | `UNFOLD["COMMAND"]` (`search_models`, `show_history`, `search_callback`) | `references/settings-configuration.md` |
+| **UI components** (cards, buttons, progress, tracker, table, charts, links) | `{% load unfold %}` + `{% component "unfold/components/…" %}` | `references/components.md` |
+| **Charts** | `{% component "unfold/components/chart/bar.html" %}` (Chart.js 4.4, theme-aware) | `references/components.md` |
+| **Facet filters** (counts per option) | Django's `show_facets` (Django 5.0+) | `references/filters-and-search.md` |
+| **Horizontal filters** | `horizontal = True` on the filter, or `list_filter_options` | `references/filters-and-search.md` |
+| **Action confirmation/form dialogs** | `@action(dialog={...})` | `references/actions-and-decorators.md` |
+| **Conditional fields** (show/hide live) | `conditional_fields = {"field": "expr == true"}` | `references/inlines-and-sections.md` |
+| **Nested inlines** (one level) | `inlines = [...]` on an inline class | `references/inlines-and-sections.md` |
+| **Paginated inlines** | `per_page` on the inline | `references/inlines-and-sections.md` |
+| **Huge-table paginator** | `paginator = InfinitePaginator` + `show_full_result_count = False` | `references/inlines-and-sections.md` |
+| **Sortable changelist** (drag-drop rows) | `ordering_field` on the ModelAdmin | `references/inlines-and-sections.md` |
+| **Expandable changelist rows** | `list_sections` (TableSection / TemplateSection) | `references/inlines-and-sections.md` |
+| **Crispy Forms styling** | `"unfold_crispy"` template pack | `references/integrations.md` |
+| **Sidebar badges / collapsible groups / user dropdown** | `UNFOLD["SIDEBAR"]` + `UNFOLD["ACCOUNT"]` | `references/settings-configuration.md` |
+| **django-hijack / djangoql / constance / guardian / location-field** | `unfold.contrib.*` apps | `references/integrations.md` |
+
+`compressed_fields` is **enabled by default** in recent Unfold (since 0.88); set `compressed_fields = False` on a ModelAdmin to opt out.
+
 ## Styling Guidelines
 
 ### Icons
@@ -519,18 +592,27 @@ Use Tailwind utility classes in templates and custom widgets. Support dark mode 
 | `actions_row` | list | Actions per row |
 | `actions_detail` | list | Actions on change form |
 | `actions_submit_line` | list | Actions in submit line |
+| `actions_list_hide_default` | bool | Hide default changelist actions |
+| `actions_detail_hide_default` | bool | Hide default change-form actions |
 | `list_filter_submit` | bool | Show apply button for filters |
-| `list_filter_sheet` | bool | Show filters in side sheet |
+| `list_filter_sheet` | bool | Show filters in side sheet (default `True`) |
+| `list_filter_options` | dict | Per-filter options (`label`, `horizontal`) |
+| `list_sections` | list | Expandable changelist row sections |
 | `list_fullwidth` | bool | Full-width list table |
 | `list_horizontal_scrollbar_top` | bool | Scrollbar at top |
 | `list_disable_select_all` | bool | Disable select all checkbox |
 | `list_before_template` | str | Template before list |
 | `list_after_template` | str | Template after list |
-| `change_form_before_template` | str | Template before form |
-| `change_form_after_template` | str | Template after form |
-| `ordering_field` | str | Field for drag-drop ordering |
+| `change_form_before_template` | str | Template before form (inside container) |
+| `change_form_after_template` | str | Template after form (inside container) |
+| `change_form_outer_before_template` | str | Template before form container |
+| `change_form_outer_after_template` | str | Template after form container |
+| `change_form_datasets` | list | Embedded changelists on the change form |
+| `conditional_fields` | dict | Show/hide form fields live (Alpine expr) |
+| `ordering_field` | str | Field for drag-drop ordering (sortable changelist) |
 | `hide_ordering_field` | bool | Hide ordering column |
-| `compressed_fields` | bool | Compact field display |
+| `paginator` | class | Custom paginator (e.g. `InfinitePaginator`) |
+| `compressed_fields` | bool | Compact field display (default `True` since 0.88) |
 | `warn_unsaved_form` | bool | Warn on unsaved changes |
 | `add_fieldsets` | tuple | Fieldsets for add form |
 | `readonly_preprocess_fields` | dict | Preprocess readonly fields |
@@ -650,14 +732,15 @@ See `examples/user-admin.py` for complete examples of all three scenarios (defau
 | Task | READ THIS FILE FIRST |
 |------|---------------------|
 | Setting up User/Group admin | **`examples/user-admin.py`** |
-| Fixing unstyled third-party admin pages (celery, etc.) | **`examples/third-party-admin.py`** |
+| Fixing unstyled third-party admin pages (celery, hijack, djangoql, etc.) | **`references/integrations.md`** + **`examples/third-party-admin.py`** |
 | Writing HTML templates, styling buttons/cards/alerts, custom dashboard | **`references/templates-and-components.md`** |
+| Using Unfold's `{% component %}` library (cards, charts, tables, progress) | **`references/components.md`** |
 | Customizing form widgets, input styling, CSS classes | **`references/widgets-and-styling.md`** |
-| Adding @action or @display decorators to ModelAdmin | **`references/actions-and-decorators.md`** |
-| Adding list_filter, search, filter classes | **`references/filters-and-search.md`** |
-| Configuring UNFOLD settings dict, sidebar, colors | **`references/settings-configuration.md`** |
-| Inlines, TableSection, TemplateSection, BaseDataset | **`references/inlines-and-sections.md`** |
-| Import/export with django-import-export | **Section 9 above** (multiple inheritance + unfold form classes) |
+| Adding @action (incl. dialogs) or @display decorators to ModelAdmin | **`references/actions-and-decorators.md`** |
+| Adding list_filter, search, facet/horizontal filters | **`references/filters-and-search.md`** |
+| Configuring UNFOLD settings, sidebar, command palette, colors | **`references/settings-configuration.md`** |
+| Inlines (incl. nested/paginated), sections, datasets, conditional fields | **`references/inlines-and-sections.md`** |
+| Import/export with django-import-export | **Section 9 above** + **`references/integrations.md`** |
 
 **For HTML/template work:** ALWAYS read `references/templates-and-components.md` first. It contains:
 - Tailwind CSS class patterns for Unfold
@@ -673,7 +756,7 @@ See `examples/user-admin.py` for complete examples of all three scenarios (defau
 |------|---------|
 | `examples/user-admin.py` | **User & Group admin setup (default, AbstractUser, AbstractBaseUser)** |
 | `examples/basic-admin.py` | Simple ModelAdmin Python patterns |
-| `examples/third-party-admin.py` | **Fixing django-celery-beat, django-celery-results, and other third-party admin classes** |
-| `examples/advanced-admin.py` | Full-featured admin with actions, filters, inlines |
+| `examples/third-party-admin.py` | **Fixing django-celery-beat, django-celery-results, django-hijack, djangoql, and other third-party admin classes** |
+| `examples/advanced-admin.py` | Full-featured admin with actions (incl. dialogs), filters, inlines, conditional fields |
 | `examples/settings-example.py` | Complete UNFOLD settings configuration |
-| `examples/custom-dashboard.html` | **HTML template patterns and Tailwind styling** |
+| `examples/custom-dashboard.html` | **Dashboard using Unfold's `{% component %}` library + Tailwind** |

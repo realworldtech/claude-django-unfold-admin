@@ -8,12 +8,13 @@ Import from `unfold.widgets`:
 
 ```python
 from unfold.widgets import (
-    UnfoldAdminTextInputWidget,      # Standard text input
-    UnfoldAdminEmailInputWidget,     # Email input
-    UnfoldAdminURLInputWidget,       # URL input with link preview
-    UnfoldAdminUUIDInputWidget,      # UUID input
-    UnfoldAdminPasswordInput,        # Password input
-    UnfoldAdminColorInputWidget,     # Color picker
+    UnfoldAdminTextInputWidget,         # Standard text input
+    UnfoldAdminEmailInputWidget,        # Email input
+    UnfoldAdminURLInputWidget,          # URL input with link preview
+    UnfoldAdminUUIDInputWidget,         # UUID input
+    UnfoldAdminPasswordWidget,          # Password input
+    UnfoldAdminPasswordToggleWidget,    # Password input with show/hide toggle
+    UnfoldAdminColorInputWidget,        # Color picker
 )
 ```
 
@@ -67,9 +68,9 @@ from unfold.widgets import (
 
 ```python
 from unfold.widgets import (
-    UnfoldBooleanWidget,                   # Standard checkbox
-    UnfoldBooleanSwitchWidget,             # Toggle switch
-    UnfoldAdminCheckboxSelectMultiple,     # Checkbox group
+    UnfoldBooleanWidget,                     # Standard checkbox
+    UnfoldBooleanSwitchWidget,               # Toggle switch
+    UnfoldAdminCheckboxSelectMultipleWidget, # Checkbox group
 )
 ```
 
@@ -98,16 +99,32 @@ from unfold.widgets import (
 
 ```python
 from unfold.widgets import (
-    UnfoldRelatedFieldWidgetWrapper,  # Related field wrapper
-    UnfoldForeignKeyRawIdWidget,      # Raw ID foreign key
+    UnfoldAdminRelatedFieldWrapperWidget,  # Related field wrapper (add/change/delete buttons)
+    UnfoldForeignKeyRawIdWidget,           # Raw ID foreign key
 )
 ```
 
-### Money Widget (requires django-money)
+### Money & Location Widgets
 
 ```python
-from unfold.widgets import UnfoldAdminMoneyWidget
+from unfold.widgets import UnfoldAdminMoneyWidget   # requires django-money
+from unfold.contrib.location_field.widgets import UnfoldAdminLocationWidget  # requires django-location-field
 ```
+
+### Form Widgets (unfold.contrib.forms)
+
+These live in `unfold.contrib.forms.widgets` and require `"unfold.contrib.forms"` in `INSTALLED_APPS`:
+
+```python
+from unfold.contrib.forms.widgets import (
+    ArrayWidget,      # builds arrays of sub-widgets (e.g. Postgres ArrayField)
+    WysiwygWidget,    # Trix rich-text editor
+)
+```
+
+### JSON Fields
+
+There is **no Unfold-specific JSON widget**. If you use **django-json-widget**, Unfold styles it automatically — just follow that package's own setup (nothing to add for Unfold).
 
 ## Using Widgets in Forms
 
@@ -149,18 +166,22 @@ Available for custom styling:
 
 ```python
 from unfold.widgets import (
-    INPUT_CLASSES,      # Base input styling
-    TEXTAREA_CLASSES,   # Textarea styling
-    SELECT_CLASSES,     # Select styling
-    CHECKBOX_CLASSES,   # Checkbox styling
-    RADIO_CLASSES,      # Radio button styling
-    SWITCH_CLASSES,     # Toggle switch styling
-    FILE_CLASSES,       # File input styling
-    BUTTON_CLASSES,     # Button styling
-    LABEL_CLASSES,      # Form label styling
-    BASE_CLASSES,       # Shared base classes
+    BASE_CLASSES,         # Shared base classes
+    BASE_INPUT_CLASSES,   # Shared input base (INPUT/TEXTAREA/SELECT build on this)
+    INPUT_CLASSES,        # Text input styling
+    TEXTAREA_CLASSES,     # Textarea styling
+    SELECT_CLASSES,       # Select styling
+    CHECKBOX_CLASSES,     # Checkbox styling
+    RADIO_CLASSES,        # Radio button styling
+    SWITCH_CLASSES,       # Toggle switch styling
+    FILE_CLASSES,         # File input styling
+    BUTTON_CLASSES,       # Button styling
+    LABEL_CLASSES,        # Form label styling
+    PROSE_CLASSES,        # Rich-text/prose styling
 )
 ```
+
+These are **lists of class strings** — join them when building a widget's `class` attribute (e.g. `" ".join([*INPUT_CLASSES, "my-extra"])`).
 
 ## Tailwind CSS Classes
 

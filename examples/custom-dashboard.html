@@ -1,7 +1,43 @@
 {% extends "admin/index.html" %}
-{% load i18n static %}
+{% load i18n static unfold %}
 
 {% block content %}
+{# ==========================================================================
+   RECOMMENDED: Build dashboards with Unfold's {% component %} library.
+   These match the theme + dark mode automatically. See references/components.md.
+   Populate `revenue_chart` etc. from your UNFOLD["DASHBOARD_CALLBACK"]
+   (e.g. revenue_chart = json.dumps({...Chart.js data...})).
+   ========================================================================== #}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {% component "unfold/components/card.html" with title=_("Total Users") icon="person" %}
+        <p class="text-2xl font-bold">{{ total_users|default:"0" }}</p>
+    {% endcomponent %}
+
+    {% component "unfold/components/card.html" with title=_("Total Orders") icon="shopping_cart" %}
+        <p class="text-2xl font-bold">{{ total_orders|default:"0" }}</p>
+    {% endcomponent %}
+
+    {% component "unfold/components/card.html" with title=_("Pending Orders") icon="pending" label="!" %}
+        <p class="text-2xl font-bold">{{ pending_orders|default:"0" }}</p>
+    {% endcomponent %}
+
+    {% component "unfold/components/card.html" with title=_("Revenue") icon="payments" %}
+        <p class="text-2xl font-bold">${{ revenue|default:"0" }}</p>
+    {% endcomponent %}
+</div>
+
+{# A chart inside a card (revenue_chart is a json.dumps(...) string from the callback) #}
+{% if revenue_chart %}
+{% component "unfold/components/card.html" with title=_("Revenue (last 6 months)") %}
+    {% component "unfold/components/chart/bar.html" with data=revenue_chart height=320 %}{% endcomponent %}
+{% endcomponent %}
+{% endif %}
+
+{# ==========================================================================
+   ALTERNATIVE: hand-written Tailwind (use only when no component fits).
+   Everything below produces a similar dashboard without the component tags.
+   ========================================================================== #}
+
 {# ==========================================================================
    Dashboard Stats Cards
    ========================================================================== #}

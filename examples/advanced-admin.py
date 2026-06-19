@@ -5,6 +5,7 @@ This example demonstrates a full-featured ModelAdmin with actions,
 filters, inlines, sections, and datasets.
 """
 
+from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -20,6 +21,7 @@ from unfold.contrib.filters.admin import (
 from unfold.datasets import BaseDataset
 from unfold.decorators import action, display
 from unfold.enums import ActionVariant
+from unfold.forms import BaseDialogForm
 from unfold.sections import TableSection, TemplateSection
 
 from .models import Order, OrderItem, Payment, Product
@@ -60,7 +62,7 @@ class OrderHistorySection(TableSection):
     verbose_name = "Order History"
     related_name = "orders"
     fields = ["order_number", "total_display", "status_display", "created_at"]
-    height = "250px"
+    height = 250  # int (pixels)
 
     @display(description="Order #")
     def order_number(self, obj):
@@ -107,6 +109,18 @@ class PaymentsDataset(BaseDataset):
     model = Payment
     model_admin = PaymentDatasetModelAdmin
     tab = True
+
+
+# =============================================================================
+# Dialog Forms (for confirmation/form actions)
+# =============================================================================
+
+
+class RefundDialogForm(BaseDialogForm):
+    """Collected before a refund action runs."""
+
+    amount = forms.DecimalField(label=_("Refund amount"), max_digits=10, decimal_places=2)
+    reason = forms.CharField(label=_("Reason"), widget=forms.Textarea, required=False)
 
 
 # =============================================================================
@@ -182,6 +196,12 @@ class OrderAdmin(ModelAdmin):
     )
     readonly_fields = ["subtotal", "tax", "total"]
     autocomplete_fields = ["customer"]
+
+    # Conditional fields: show internal_notes live only when status is "cancelled".
+    # The expression is Alpine.js, referencing other fields on the same form.
+    conditional_fields = {
+        "internal_notes": "status == 'cancelled'",
+    }
 
     # Template hooks
     change_form_before_template = "admin/shop/order_summary.html"
@@ -290,9 +310,17 @@ class OrderAdmin(ModelAdmin):
         icon="currency_exchange",
         variant=ActionVariant.WARNING,
         permissions=["refund"],
+        dialog={
+            "title": _("Refund this order?"),
+            "description": _("Enter the amount to refund."),
+            "form_class": RefundDialogForm,
+            "form_submit_text": _("Issue refund"),  # NOTE: key is form_submit_text, not submit_text
+        },
     )
-    def refund_order(self, request, object_id):
-        messages.warning(request, f"Refund initiated for order #{object_id}.")
+    def refund_order(self, request, form, object_id):
+        # A detail dialog action receives the validated form, then object_id.
+        amount = form.cleaned_data["amount"]
+        messages.warning(request, f"Refund of ${amount} initiated for order #{object_id}.")
         return redirect(reverse_lazy("admin:shop_order_change", args=[object_id]))
 
     @action(

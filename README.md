@@ -44,12 +44,13 @@ rm -rf ~/.claude/skills/unfold-admin
 
 ## What It Covers
 
-- **Actions and decorators** — `@action` placement options, `@display` decorator for list views, permission handling
-- **Filters and search** — Dropdown, radio/checkbox, date/time, numeric, text, and autocomplete filters
-- **Inlines and sections** — TabularInline, StackedInline, TableSection, TemplateSection, BaseDataset
-- **Settings and configuration** — UNFOLD settings dictionary, branding, colors (OKLch), sidebar navigation, tabs
-- **Templates and components** — HTML template patterns, Tailwind CSS classes, Material Symbols icons, dark mode
-- **Widgets and styling** — Form widget reference, CSS class constants, Tailwind patterns for form elements
+- **Actions and decorators** — `@action` placement options, confirmation/form dialogs, `@display` decorator for list views, permission handling
+- **Filters and search** — Dropdown, radio/checkbox, date/time, numeric, text, autocomplete, facet, and horizontal filters
+- **Inlines and sections** — TabularInline, StackedInline, nested & paginated inlines, `InfinitePaginator`, sections, datasets, conditional fields, sortable changelist
+- **Settings and configuration** — UNFOLD settings dictionary, branding, colors (OKLCH), sidebar navigation, command palette, tabs, dashboard
+- **Components** — Unfold's `{% component %}` library: cards, buttons, progress, trackers, tables, and Chart.js charts
+- **Templates and styling** — HTML template patterns, Tailwind 4, Material Symbols icons, dark mode, form widgets, CSS class constants
+- **Integrations** — celery-beat/results, simple-history, modeltranslation, import-export, hijack, djangoql, constance, guardian, location-field, money
 
 ## Usage
 
@@ -65,18 +66,24 @@ Once installed, just ask Claude Code to work on Django admin. The skill triggers
 ```
 SKILL.md                              # Main skill definition and quick-start guide
 examples/
+  user-admin.py                       # User & Group admin (default, AbstractUser, AbstractBaseUser)
   basic-admin.py                      # Simple ModelAdmin patterns
-  advanced-admin.py                   # Full-featured admin with actions, filters, inlines
+  third-party-admin.py                # Fixing celery-beat, celery-results, hijack, djangoql, etc.
+  advanced-admin.py                   # Full-featured admin (actions incl. dialogs, filters, inlines, conditional fields)
   settings-example.py                 # Complete UNFOLD settings configuration
-  custom-dashboard.html               # Dashboard template with Tailwind styling
+  custom-dashboard.html               # Dashboard using the {% component %} library + Tailwind
 references/
-  actions-and-decorators.md           # @action and @display decorator reference
-  filters-and-search.md              # Filter types and search configuration
-  inlines-and-sections.md            # Inlines, TableSection, TemplateSection, BaseDataset
-  settings-configuration.md          # UNFOLD settings dictionary reference
-  templates-and-components.md        # HTML templates, Tailwind classes, Material Symbols
+  actions-and-decorators.md           # @action (incl. dialogs) and @display decorator reference
+  filters-and-search.md              # Filter types, facet/horizontal filters, search
+  inlines-and-sections.md            # Inlines (nested/paginated), sections, datasets, conditional fields, sortable
+  settings-configuration.md          # UNFOLD settings dict, sidebar, command palette, dashboard
+  templates-and-components.md        # HTML templates, Tailwind 4, Material Symbols, dark mode
+  components.md                      # Unfold's {% component %} library (cards, charts, tables, buttons, etc.)
   widgets-and-styling.md             # Widget reference and CSS class constants
+  integrations.md                    # Third-party packages (celery, hijack, djangoql, import-export, etc.)
 ```
+
+Targets **django-unfold 0.97.x** (Django ≥ 5.2, Python ≥ 3.12).
 
 ## Upstream
 
