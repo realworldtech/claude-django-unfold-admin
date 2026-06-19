@@ -45,3 +45,5 @@ Targets **django-unfold 0.97.x** (Django ≥ 5.2, Python ≥ 3.12).
 ## Updating
 
 When django-unfold releases new features or changes APIs, update the corresponding reference file and examples. The SKILL.md quick-start section should stay in sync with the current API surface. Ground new content in the upstream docs ([unfoldadmin.com/docs](https://unfoldadmin.com/docs/)) and source ([github.com/unfoldadmin/django-unfold](https://github.com/unfoldadmin/django-unfold)) rather than memory — Unfold's API moves quickly. Bump the "Version & Compatibility" block in SKILL.md when the supported Django/Python range changes.
+
+See [`MAINTAINING.md`](MAINTAINING.md) for the full step-by-step refresh procedure (version delta → per-cluster grounded research → apply → retrieval-test verification).
