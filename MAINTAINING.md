@@ -39,9 +39,11 @@ Parallelising this across one research agent per cluster works well. Have each r
 
 Update the matching files, keeping them consistent with each other:
 
-- `SKILL.md` — quick-start, the third-party detection table, the "Newer Features" map, the ModelAdmin attributes table, and the reference-routing tables.
-- `references/*.md` — the cluster reference files. Add a new reference file when a surface is large (that's how `components.md` and `integrations.md` were added).
-- `examples/*` — keep runnable-shaped and idiomatic.
+The skill files live under `skills/unfold-admin/`:
+
+- `skills/unfold-admin/SKILL.md` — quick-start, the third-party detection table, the "Newer Features" map, the ModelAdmin attributes table, and the reference-routing tables.
+- `skills/unfold-admin/references/*.md` — the cluster reference files. Add a new reference file when a surface is large (that's how `components.md` and `integrations.md` were added).
+- `skills/unfold-admin/examples/*` — keep runnable-shaped and idiomatic.
 - Structure listings in `README.md` and `CLAUDE.md`.
 
 ### 5. Verify
@@ -49,8 +51,8 @@ Update the matching files, keeping them consistent with each other:
 Run a consistency sweep, then a retrieval test:
 
 ```bash
-# Cross-references resolve
-grep -oh "references/[a-z-]*\.md" SKILL.md | sort -u | while read f; do test -f "$f" && echo "OK $f" || echo "MISSING $f"; done
+# Cross-references resolve (run from the skill directory)
+(cd skills/unfold-admin && grep -oh "references/[a-z-]*\.md" SKILL.md | sort -u | while read f; do test -f "$f" && echo "OK $f" || echo "MISSING $f"; done)
 
 # No stale identifiers left behind (extend per release)
 grep -rn "command_search\|UnfoldAdminPasswordInput\|UnfoldRelatedFieldWidgetWrapper" . --include="*.md" --include="*.py"
