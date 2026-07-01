@@ -18,28 +18,25 @@ This skill is not affiliated with the django-unfold project. It is an independen
 
 ## Installation
 
-Clone this repository into your Claude Code skills directory:
+This skill ships as a Claude Code **plugin** (`rwts-unfold-admin`), distributed via the RWTS Claude Code marketplace. Add the marketplace once, then install the plugin:
 
 ```bash
-git clone https://github.com/realworldtech/claude-django-unfold-admin.git ~/.claude/skills/unfold-admin
+/plugin marketplace add git@github.realworld.net.au:realworldtech/claude-marketplace.git
+/plugin install rwts-unfold-admin@rwts
 ```
 
-That's it. Claude Code will automatically detect and use the skill when you ask about Django admin, unfold, admin actions, admin filters, or admin theming.
+Claude Code will automatically detect and use the skill when you ask about Django admin, unfold, admin actions, admin filters, or admin theming.
 
 ### Updating
 
-Pull the latest changes:
-
 ```bash
-cd ~/.claude/skills/unfold-admin && git pull
+/plugin marketplace update rwts
 ```
 
 ### Uninstalling
 
-Remove the skill directory:
-
 ```bash
-rm -rf ~/.claude/skills/unfold-admin
+/plugin uninstall rwts-unfold-admin@rwts
 ```
 
 ## What It Covers
@@ -64,23 +61,27 @@ Once installed, just ask Claude Code to work on Django admin. The skill triggers
 ## Structure
 
 ```
-SKILL.md                              # Main skill definition and quick-start guide
-examples/
-  user-admin.py                       # User & Group admin (default, AbstractUser, AbstractBaseUser)
-  basic-admin.py                      # Simple ModelAdmin patterns
-  third-party-admin.py                # Fixing celery-beat, celery-results, hijack, djangoql, etc.
-  advanced-admin.py                   # Full-featured admin (actions incl. dialogs, filters, inlines, conditional fields)
-  settings-example.py                 # Complete UNFOLD settings configuration
-  custom-dashboard.html               # Dashboard using the {% component %} library + Tailwind
-references/
-  actions-and-decorators.md           # @action (incl. dialogs) and @display decorator reference
-  filters-and-search.md              # Filter types, facet/horizontal filters, search
-  inlines-and-sections.md            # Inlines (nested/paginated), sections, datasets, conditional fields, sortable
-  settings-configuration.md          # UNFOLD settings dict, sidebar, command palette, dashboard
-  templates-and-components.md        # HTML templates, Tailwind 4, Material Symbols, dark mode
-  components.md                      # Unfold's {% component %} library (cards, charts, tables, buttons, etc.)
-  widgets-and-styling.md             # Widget reference and CSS class constants
-  integrations.md                    # Third-party packages (celery, hijack, djangoql, import-export, etc.)
+.claude-plugin/
+  plugin.json                          # Plugin manifest (marketplace metadata)
+skills/
+  unfold-admin/
+    SKILL.md                           # Main skill definition and quick-start guide
+    examples/
+      user-admin.py                    # User & Group admin (default, AbstractUser, AbstractBaseUser)
+      basic-admin.py                   # Simple ModelAdmin patterns
+      third-party-admin.py             # Fixing celery-beat, celery-results, hijack, djangoql, etc.
+      advanced-admin.py                # Full-featured admin (actions incl. dialogs, filters, inlines, conditional fields)
+      settings-example.py              # Complete UNFOLD settings configuration
+      custom-dashboard.html            # Dashboard using the {% component %} library + Tailwind
+    references/
+      actions-and-decorators.md        # @action (incl. dialogs) and @display decorator reference
+      filters-and-search.md            # Filter types, facet/horizontal filters, search
+      inlines-and-sections.md          # Inlines (nested/paginated), sections, datasets, conditional fields, sortable
+      settings-configuration.md        # UNFOLD settings dict, sidebar, command palette, dashboard
+      templates-and-components.md      # HTML templates, Tailwind 4, Material Symbols, dark mode
+      components.md                    # Unfold's {% component %} library (cards, charts, tables, buttons, etc.)
+      widgets-and-styling.md           # Widget reference and CSS class constants
+      integrations.md                  # Third-party packages (celery, hijack, djangoql, import-export, etc.)
 ```
 
 Targets **django-unfold 0.97.x** (Django ≥ 5.2, Python ≥ 3.12).
